@@ -15,6 +15,13 @@
       "when": 1789212625185,
       "tag": "0001_blushing_risque",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790025069950,
+      "tag": "0002_learning_system",
+      "breakpoints": true
     }
   ]
 }
