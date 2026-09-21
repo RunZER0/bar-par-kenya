@@ -1,7 +1,13 @@
 import { and, asc, count, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type {
   Learner,
+  CardRating,
+  CardReviewState,
+  CardSession,
+  DeckSummary,
   FlashcardRating,
+  MindMapData,
+  MindMapSummary,
   FlashcardReview,
   NotificationPreferences,
   PracticeSession,
@@ -15,8 +21,11 @@ import type { Database } from "./db/client.js";
 import {
   attempts,
   bookmarks,
+  cardReviews,
+  flashcards,
   flashcardReviews,
   learners,
+  mindMapNodes,
   notificationPreferences,
   practiceSessions,
   pushTokens,
@@ -66,6 +75,59 @@ function toSession(row: typeof practiceSessions.$inferSelect): PracticeSession {
     startedAt: row.startedAt.toISOString(),
     completedAt: iso(row.completedAt),
   };
+}
+
+
+function toCardReview(row: typeof cardReviews.$inferSelect): CardReviewState {
+  return {
+    flashcardId: row.flashcardId,
+    rating: row.rating,
+    state: row.state,
+    reviewCount: row.reviewCount,
+    lapses: row.lapses,
+    intervalDays: row.intervalDays,
+    easePermille: row.easePermille,
+    dueAt: row.dueAt.toISOString(),
+    lastReviewedAt: row.lastReviewedAt.toISOString(),
+  };
+}
+
+function scheduleCard(
+  rating: CardRating,
+  previous: typeof cardReviews.$inferSelect | undefined,
+  now: Date,
+) {
+  const currentEase = previous?.easePermille ?? 2500;
+  const currentInterval = previous?.intervalDays ?? 0;
+  const reviewCount = (previous?.reviewCount ?? 0) + 1;
+  const lapses = (previous?.lapses ?? 0) + (rating === "again" ? 1 : 0);
+  let state: "learning" | "review" = "review";
+  let intervalDays = currentInterval;
+  let easePermille = currentEase;
+  let dueAt: Date;
+
+  if (rating === "again") {
+    state = "learning";
+    intervalDays = 0;
+    easePermille = Math.max(1300, currentEase - 200);
+    dueAt = new Date(now.getTime() + 10 * 60 * 1000);
+  } else if (rating === "hard") {
+    state = "review";
+    intervalDays = Math.max(1, currentInterval ? Math.round(currentInterval * 1.2) : 1);
+    easePermille = Math.max(1300, currentEase - 150);
+    dueAt = new Date(now.getTime() + intervalDays * 86400000);
+  } else if (rating === "good") {
+    state = "review";
+    intervalDays = currentInterval ? Math.max(1, Math.round(currentInterval * (currentEase / 1000))) : 1;
+    dueAt = new Date(now.getTime() + intervalDays * 86400000);
+  } else {
+    state = "review";
+    easePermille = Math.min(3000, currentEase + 150);
+    intervalDays = currentInterval ? Math.max(4, Math.round(currentInterval * (easePermille / 1000) * 1.3)) : 4;
+    dueAt = new Date(now.getTime() + intervalDays * 86400000);
+  }
+
+  return { rating, state, reviewCount, lapses, intervalDays, easePermille, dueAt, lastReviewedAt: now, updatedAt: now };
 }
 
 const defaultPreferences: NotificationPreferences = {
@@ -387,6 +449,160 @@ export class PostgresStore implements Store {
       streakReminders: row.streakReminders,
       preferredHour: row.preferredHour,
       timezone: row.timezone,
+    };
+  }
+
+
+  async listDecks(learnerId: string): Promise<DeckSummary[]> {
+    const subjectRows = await this.db.select().from(subjects)
+      .where(eq(subjects.published, true)).orderBy(asc(subjects.position));
+    const cardRows = await this.db.select({
+      cardId: flashcards.id,
+      subjectId: subjects.id,
+    }).from(flashcards)
+      .innerJoin(topics, eq(topics.id, flashcards.topicId))
+      .innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .where(and(eq(flashcards.published, true), eq(topics.published, true), eq(subjects.published, true)));
+    const reviewRows = await this.db.select().from(cardReviews).where(eq(cardReviews.learnerId, learnerId));
+    const reviewByCard = new Map(reviewRows.map((row) => [row.flashcardId, row]));
+    const now = Date.now();
+
+    return subjectRows.map((subject) => {
+      const cards = cardRows.filter((row) => row.subjectId === subject.id);
+      const reviews = cards.map((row) => reviewByCard.get(row.cardId)).filter(Boolean) as Array<typeof cardReviews.$inferSelect>;
+      const due = reviews.filter((row) => row.dueAt.getTime() <= now).length;
+      const newCount = cards.length - reviews.length;
+      const future = reviews.filter((row) => row.dueAt.getTime() > now).sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime())[0];
+      return {
+        subjectId: subject.id,
+        slug: subject.slug,
+        unitCode: subject.unitCode ?? `ATP10${Math.max(0, subject.position - 1)}`,
+        name: subject.name,
+        total: cards.length,
+        due,
+        newCount,
+        nextDueAt: future?.dueAt.toISOString() ?? null,
+      };
+    });
+  }
+
+  async createCardSession(input: { learnerId: string; subjectId?: string; topicId?: string; limit: number }): Promise<CardSession> {
+    const filters = [eq(flashcards.published, true), eq(topics.published, true), eq(subjects.published, true)];
+    if (input.subjectId) filters.push(eq(subjects.id, input.subjectId));
+    if (input.topicId) filters.push(eq(topics.id, input.topicId));
+
+    const rows = await this.db.select({
+      card: flashcards,
+      topicId: topics.id,
+      topicName: topics.name,
+      subjectId: subjects.id,
+      subjectName: subjects.name,
+      unitCode: subjects.unitCode,
+    }).from(flashcards)
+      .innerJoin(topics, eq(topics.id, flashcards.topicId))
+      .innerJoin(subjects, eq(subjects.id, topics.subjectId))
+      .where(and(...filters))
+      .orderBy(asc(subjects.position), asc(topics.position), asc(flashcards.position));
+
+    const reviews = await this.db.select().from(cardReviews).where(eq(cardReviews.learnerId, input.learnerId));
+    const reviewByCard = new Map(reviews.map((row) => [row.flashcardId, row]));
+    const now = Date.now();
+    const eligible = rows.filter((row) => {
+      const review = reviewByCard.get(row.card.id);
+      return !review || review.dueAt.getTime() <= now;
+    });
+    eligible.sort((a, b) => {
+      const ar = reviewByCard.get(a.card.id);
+      const br = reviewByCard.get(b.card.id);
+      if (ar && br) return ar.dueAt.getTime() - br.dueAt.getTime();
+      if (ar) return -1;
+      if (br) return 1;
+      return a.card.position - b.card.position;
+    });
+
+    const cards = eligible.slice(0, input.limit).map((row) => {
+      const review = reviewByCard.get(row.card.id);
+      return {
+        id: row.card.id,
+        topicId: row.topicId,
+        subjectId: row.subjectId,
+        unitCode: row.unitCode ?? "",
+        subjectName: row.subjectName,
+        topicName: row.topicName,
+        front: row.card.front,
+        back: row.card.back,
+        source: row.card.source,
+        review: review ? toCardReview(review) : null,
+      };
+    });
+    const nextFuture = reviews.filter((row) => row.dueAt.getTime() > now)
+      .sort((a, b) => a.dueAt.getTime() - b.dueAt.getTime())[0];
+    return { cards, total: cards.length, nextDueAt: nextFuture?.dueAt.toISOString() ?? null };
+  }
+
+  async reviewCard(input: { learnerId: string; flashcardId: string; rating: CardRating }): Promise<CardReviewState> {
+    const [card] = await this.db.select({ id: flashcards.id }).from(flashcards)
+      .where(and(eq(flashcards.id, input.flashcardId), eq(flashcards.published, true))).limit(1);
+    if (!card) throw new NotFoundError("Flashcard not found");
+    const [previous] = await this.db.select().from(cardReviews).where(and(
+      eq(cardReviews.learnerId, input.learnerId),
+      eq(cardReviews.flashcardId, input.flashcardId),
+    )).limit(1);
+    const next = scheduleCard(input.rating, previous, new Date());
+    const [row] = await this.db.insert(cardReviews).values({
+      learnerId: input.learnerId,
+      flashcardId: input.flashcardId,
+      ...next,
+    }).onConflictDoUpdate({
+      target: [cardReviews.learnerId, cardReviews.flashcardId],
+      set: next,
+    }).returning();
+    if (!row) throw new Error("Failed to save flashcard review");
+    return toCardReview(row);
+  }
+
+  async listMindMaps(): Promise<MindMapSummary[]> {
+    const rows = await this.db.select({
+      subjectId: subjects.id,
+      slug: subjects.slug,
+      unitCode: subjects.unitCode,
+      name: subjects.name,
+      nodeCount: count(mindMapNodes.id),
+    }).from(subjects)
+      .leftJoin(mindMapNodes, and(eq(mindMapNodes.subjectId, subjects.id), eq(mindMapNodes.published, true)))
+      .where(eq(subjects.published, true))
+      .groupBy(subjects.id)
+      .orderBy(asc(subjects.position));
+    return rows.map((row) => ({
+      subjectId: row.subjectId,
+      slug: row.slug,
+      unitCode: row.unitCode ?? "",
+      name: row.name,
+      nodeCount: Number(row.nodeCount),
+    }));
+  }
+
+  async getMindMap(subjectSlug: string): Promise<MindMapData | null> {
+    const [subject] = await this.db.select().from(subjects)
+      .where(and(eq(subjects.slug, subjectSlug), eq(subjects.published, true))).limit(1);
+    if (!subject) return null;
+    const rows = await this.db.select().from(mindMapNodes)
+      .where(and(eq(mindMapNodes.subjectId, subject.id), eq(mindMapNodes.published, true)))
+      .orderBy(asc(mindMapNodes.position));
+    return {
+      subjectId: subject.id,
+      slug: subject.slug,
+      unitCode: subject.unitCode ?? "",
+      name: subject.name,
+      nodes: rows.map((row) => ({
+        id: row.id,
+        key: row.key,
+        parentKey: row.parentKey,
+        label: row.label,
+        kind: row.kind,
+        depth: row.depth,
+        position: row.position,
+      })),
     };
   }
 
