@@ -1,7 +1,13 @@
 import { randomUUID } from "node:crypto";
 import type {
   AttemptResult,
+  CardRating,
+  CardReviewState,
+  CardSession,
+  DeckSummary,
   FlashcardRating,
+  MindMapData,
+  MindMapSummary,
   FlashcardReview,
   Learner,
   NotificationPreferences,
@@ -56,6 +62,7 @@ export class MemoryStore implements Store {
   notificationPreferences = new Map<string, NotificationPreferences>();
   pushTokens = new Map<string, { learnerId: string; platform: "android" | "ios" | "web" }>();
   flashcardReviews = new Map<string, FlashcardReview>();
+  cardReviews = new Map<string, CardReviewState>();
 
   async createGuest(): Promise<Learner> {
     const learner: Learner = {
@@ -160,6 +167,75 @@ export class MemoryStore implements Store {
     };
     this.flashcardReviews.set(key, { ...review, questionId: key });
     return review;
+  }
+
+
+  async listDecks(_learnerId: string): Promise<DeckSummary[]> {
+    return [{
+      subjectId,
+      slug: "civil-litigation",
+      unitCode: "ATP100",
+      name: "Civil Litigation",
+      total: 2,
+      due: 0,
+      newCount: 2,
+      nextDueAt: null,
+    }];
+  }
+
+  async createCardSession(input: { learnerId: string; subjectId?: string; topicId?: string; limit: number }): Promise<CardSession> {
+    const cards = questionFixtures.slice(0, input.limit).map((question) => ({
+      id: question.id,
+      topicId: question.topicId,
+      subjectId,
+      unitCode: "ATP100",
+      subjectName: "Civil Litigation",
+      topicName: "Civil Procedure Foundations",
+      front: question.prompt,
+      back: question.options.find((option) => option.id === question.correctOptionId)?.text ?? "",
+      source: null,
+      review: this.cardReviews.get(`${input.learnerId}:${question.id}`) ?? null,
+    }));
+    return { cards, total: cards.length, nextDueAt: null };
+  }
+
+  async reviewCard(input: { learnerId: string; flashcardId: string; rating: CardRating }): Promise<CardReviewState> {
+    const key = `${input.learnerId}:${input.flashcardId}`;
+    const previous = this.cardReviews.get(key);
+    const now = new Date();
+    const dueAt = new Date(now.getTime() + (input.rating === "again" ? 10 * 60 * 1000 : 86400000));
+    const review: CardReviewState = {
+      flashcardId: input.flashcardId,
+      rating: input.rating,
+      state: input.rating === "again" ? "learning" : "review",
+      reviewCount: (previous?.reviewCount ?? 0) + 1,
+      lapses: (previous?.lapses ?? 0) + (input.rating === "again" ? 1 : 0),
+      intervalDays: input.rating === "again" ? 0 : 1,
+      easePermille: 2500,
+      dueAt: dueAt.toISOString(),
+      lastReviewedAt: now.toISOString(),
+    };
+    this.cardReviews.set(key, review);
+    return review;
+  }
+
+  async listMindMaps(): Promise<MindMapSummary[]> {
+    return [{ subjectId, slug: "civil-litigation", unitCode: "ATP100", name: "Civil Litigation", nodeCount: 3 }];
+  }
+
+  async getMindMap(subjectSlug: string): Promise<MindMapData | null> {
+    if (subjectSlug !== "civil-litigation") return null;
+    return {
+      subjectId,
+      slug: "civil-litigation",
+      unitCode: "ATP100",
+      name: "Civil Litigation",
+      nodes: [
+        { id: "root", key: "ATP100", parentKey: null, label: "Civil Litigation", kind: "unit", depth: 0, position: 0 },
+        { id: "topic", key: "ATP100:topic", parentKey: "ATP100", label: "Civil Procedure", kind: "topic", depth: 1, position: 1 },
+        { id: "issue", key: "ATP100:issue", parentKey: "ATP100:topic", label: "Jurisdiction", kind: "issue", depth: 2, position: 2 },
+      ],
+    };
   }
 
   async createPracticeSession(input: CreateSessionInput) {
