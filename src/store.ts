@@ -1,6 +1,12 @@
 import type {
   AttemptResult,
+  CardRating,
+  CardReviewState,
+  CardSession,
+  DeckSummary,
   FlashcardRating,
+  MindMapData,
+  MindMapSummary,
   FlashcardReview,
   Learner,
   NotificationPreferences,
@@ -34,6 +40,11 @@ export interface Store {
   listSubjects(): Promise<Subject[]>;
   listTopics(subjectSlug: string): Promise<Topic[] | null>;
   listFlashcards(input: { subjectId?: string | undefined; topicId?: string | undefined }): Promise<Question[]>;
+  listDecks(learnerId: string): Promise<DeckSummary[]>;
+  createCardSession(input: { learnerId: string; subjectId?: string; topicId?: string; limit: number }): Promise<CardSession>;
+  reviewCard(input: { learnerId: string; flashcardId: string; rating: CardRating }): Promise<CardReviewState>;
+  listMindMaps(): Promise<MindMapSummary[]>;
+  getMindMap(subjectSlug: string): Promise<MindMapData | null>;
   getFlashcardReviews(learnerId: string): Promise<FlashcardReview[]>;
   reviewFlashcard(input: { learnerId: string; questionId: string; rating: FlashcardRating }): Promise<FlashcardReview>;
   createPracticeSession(input: CreateSessionInput): Promise<PracticeSession>;
