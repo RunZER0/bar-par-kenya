@@ -3,6 +3,8 @@ export type PracticeMode = "practice" | "timed";
 export type SessionStatus = "active" | "completed";
 export type Difficulty = "foundation" | "standard" | "advanced";
 export type FlashcardRating = "again" | "known";
+export type CardRating = "again" | "hard" | "good" | "easy";
+export type CardState = "new" | "learning" | "review";
 
 export interface Learner {
   id: string;
@@ -94,4 +96,73 @@ export interface NotificationPreferences {
   streakReminders: boolean;
   preferredHour: number;
   timezone: string;
+}
+
+
+export interface CardReviewState {
+  flashcardId: string;
+  rating: CardRating;
+  state: CardState;
+  reviewCount: number;
+  lapses: number;
+  intervalDays: number;
+  easePermille: number;
+  dueAt: string;
+  lastReviewedAt: string;
+}
+
+export interface StudyCard {
+  id: string;
+  topicId: string;
+  subjectId: string;
+  unitCode: string;
+  subjectName: string;
+  topicName: string;
+  front: string;
+  back: string;
+  source: string | null;
+  review: CardReviewState | null;
+}
+
+export interface DeckSummary {
+  subjectId: string;
+  slug: string;
+  unitCode: string;
+  name: string;
+  total: number;
+  due: number;
+  newCount: number;
+  nextDueAt: string | null;
+}
+
+export interface CardSession {
+  cards: StudyCard[];
+  total: number;
+  nextDueAt: string | null;
+}
+
+export interface MindMapNode {
+  id: string;
+  key: string;
+  parentKey: string | null;
+  label: string;
+  kind: "unit" | "topic" | "issue";
+  depth: number;
+  position: number;
+}
+
+export interface MindMapSummary {
+  subjectId: string;
+  slug: string;
+  unitCode: string;
+  name: string;
+  nodeCount: number;
+}
+
+export interface MindMapData {
+  subjectId: string;
+  slug: string;
+  unitCode: string;
+  name: string;
+  nodes: MindMapNode[];
 }
