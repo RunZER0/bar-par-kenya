@@ -13,7 +13,7 @@ export function MobileNav() {
   const { width } = useWindowDimensions();
   const path = usePathname();
   const insets = useSafeAreaInsets();
-  if (width >= 720) return null;
+  if (width >= 720 || path.startsWith("/account")) return null;
 
   return (
     <View style={[styles.shell, { bottom: Math.max(insets.bottom, Platform.OS === "web" ? 12 : 10) }]}>
