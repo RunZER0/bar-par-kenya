@@ -1,160 +1,131 @@
 import { Link } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
-import { Brand } from "@/components/Brand";
-import { colors, radii, shadow } from "@/theme";
+import { BottomNav } from "@/components/BottomNav";
+import { StatePanel } from "@/components/StatePanel";
+import { api, type Deck, type Learner } from "@/api";
+import { colors, radii } from "@/theme";
 
-const units = [
-  ["ATP100", "Civil Litigation"],
-  ["ATP101", "Criminal Litigation"],
-  ["ATP102", "Probate & Administration"],
-  ["ATP103", "Legal Writing & Drafting"],
-  ["ATP104", "Trial Advocacy"],
-  ["ATP105", "Professional Ethics & Practice"],
-  ["ATP106", "Legal Practice Management"],
-  ["ATP107", "Conveyancing"],
-  ["ATP108", "Commercial Transactions"],
-] as const;
-
-export default function Landing() {
+export default function Today() {
   const { width } = useWindowDimensions();
   const desktop = width >= 900;
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [learner, setLearner] = useState<Learner | null>(null);
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+
+  async function load() {
+    setState("loading");
+    try {
+      const [deckData, me] = await Promise.all([api.listDecks(), api.me()]);
+      setDecks(deckData);
+      setLearner(me);
+      setState("ready");
+    } catch {
+      setState("error");
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  const dueTotal = useMemo(() => decks.reduce((sum, deck) => sum + deck.due + deck.newCount, 0), [decks]);
+  const activeDecks = useMemo(() => decks.filter((deck) => deck.due + deck.newCount > 0), [decks]);
+  const first = activeDecks[0] ?? decks[0] ?? null;
 
   return (
     <View style={styles.page}>
       <AppHeader />
       <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={[styles.hero, desktop && styles.heroDesktop]}>
-          <View style={styles.heroCopy}>
-            <Text style={styles.kicker}>KENYA SCHOOL OF LAW</Text>
-            <Text style={[styles.title, desktop && styles.titleDesktop]}>Know the issue.{"\n"}Recall the rule.</Text>
-            <Text style={styles.meta}>9 ATP units · Flashcards · Mind maps</Text>
-            <View style={styles.actions}>
-              <Link href="/study" asChild>
-                <Pressable style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-                  <Text style={styles.primaryText}>Start flashcards</Text>
-                  <Text style={styles.primaryArrow}>→</Text>
-                </Pressable>
-              </Link>
-              <Link href="/mind-maps" asChild>
-                <Pressable style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}>
-                  <Text style={styles.secondaryText}>Open mind maps</Text>
-                </Pressable>
-              </Link>
+        {state === "loading" ? (
+          <StatePanel title="Loading today…" />
+        ) : state === "error" ? (
+          <StatePanel title="Could not load today." action="Try again" onPress={() => void load()} />
+        ) : (
+          <>
+            <View style={styles.head}>
+              <Text style={styles.kicker}>TODAY</Text>
+              <Text style={[styles.total, desktop && styles.totalDesktop]}>{dueTotal}</Text>
+              <Text style={styles.totalLabel}>{dueTotal === 1 ? "card ready" : "cards ready"}</Text>
+              {learner?.kind === "registered" && learner.displayName ? <Text style={styles.name}>{learner.displayName}</Text> : null}
             </View>
-          </View>
 
-          <View style={[styles.demoWrap, desktop && styles.demoWrapDesktop]}>
-            <View style={styles.demoMeta}>
-              <Text style={styles.demoCode}>ATP100 · CIVIL LITIGATION</Text>
-              <Text style={styles.demoCount}>01 / 30</Text>
+            {first ? (
+              <Link href={{ pathname: "/study", params: { subjectId: first.subjectId } }} asChild>
+                <Pressable style={({ pressed }) => [styles.start, pressed && styles.pressed]}>
+                  <View>
+                    <Text style={styles.startCode}>{first.unitCode}</Text>
+                    <Text style={styles.startName}>{first.name}</Text>
+                  </View>
+                  <View style={styles.startRight}>
+                    <Text style={styles.startCount}>{first.due + first.newCount}</Text>
+                    <Text style={styles.startArrow}>→</Text>
+                  </View>
+                </Pressable>
+              </Link>
+            ) : null}
+
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>{activeDecks.length ? "Up next" : "ATP units"}</Text>
+              <Link href="/mind-maps" asChild><Pressable><Text style={styles.textLink}>Maps</Text></Pressable></Link>
             </View>
-            <View style={styles.demoCard}>
-              <Text style={styles.demoLabel}>RECALL</Text>
-              <Text style={styles.demoQuestion}>What must be shown for stay of execution pending appeal?</Text>
-              <View style={styles.demoRule} />
-              <Text style={styles.demoHint}>Reveal when you have an answer.</Text>
-            </View>
-            <View style={styles.ratingRow}>
-              {["Again", "Hard", "Good", "Easy"].map((label) => (
-                <View key={label} style={styles.rating}><Text style={styles.ratingText}>{label}</Text></View>
+
+            <View style={[styles.list, desktop && styles.grid]}>
+              {(activeDecks.length ? activeDecks : decks).map((deck) => (
+                <Link key={deck.subjectId} href={{ pathname: "/study", params: { subjectId: deck.subjectId } }} asChild>
+                  <Pressable style={({ pressed }) => [styles.deck, pressed && styles.pressed]}>
+                    <View style={styles.deckTop}>
+                      <Text style={styles.deckCode}>{deck.unitCode}</Text>
+                      <Text style={styles.deckCount}>{deck.due > 0 ? `${deck.due} due` : deck.newCount > 0 ? `${deck.newCount} new` : "Clear"}</Text>
+                    </View>
+                    <Text style={styles.deckName}>{deck.name}</Text>
+                  </Pressable>
+                </Link>
               ))}
             </View>
-          </View>
-        </View>
 
-        <View style={styles.strip}>
-          <Text style={styles.stripNumber}>09</Text>
-          <Text style={styles.stripLabel}>ATP UNITS</Text>
-          <View style={styles.stripRule} />
-          <Text style={styles.stripNumber}>298</Text>
-          <Text style={styles.stripLabel}>SYLLABUS ENTRIES MAPPED</Text>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionKicker}>THE ATP</Text>
-            <Text style={styles.sectionTitle}>Everything has a place.</Text>
-          </View>
-          <View style={[styles.unitGrid, desktop && styles.unitGridDesktop]}>
-            {units.map(([code, name], index) => (
-              <View key={code} style={styles.unit}>
-                <Text style={styles.unitIndex}>{String(index + 1).padStart(2, "0")}</Text>
-                <Text style={styles.unitCode}>{code}</Text>
-                <Text style={styles.unitName}>{name}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={[styles.bottom, desktop && styles.bottomDesktop]}>
-          <View>
-            <Text style={styles.bottomKicker}>FLASHCARDS</Text>
-            <Text style={styles.bottomTitle}>Recall what matters.</Text>
-          </View>
-          <View>
-            <Text style={styles.bottomKicker}>MIND MAPS</Text>
-            <Text style={styles.bottomTitle}>See how it connects.</Text>
-          </View>
-        </View>
-
-        <View style={styles.footer}>
-          <Brand compact />
-          <Text style={styles.footerText}>Built for KSL.</Text>
-        </View>
+            {learner?.kind === "guest" ? (
+              <Link href="/account" asChild>
+                <Pressable style={({ pressed }) => [styles.protect, pressed && styles.pressed]}>
+                  <Text style={styles.protectText}>Protect progress</Text>
+                  <Text style={styles.protectArrow}>→</Text>
+                </Pressable>
+              </Link>
+            ) : null}
+          </>
+        )}
       </ScrollView>
+      <BottomNav />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.paper },
-  scroll: { paddingBottom: 44 },
-  hero: { paddingHorizontal: 20, paddingTop: 58, paddingBottom: 60, gap: 42, maxWidth: 1240, width: "100%", alignSelf: "center" },
-  heroDesktop: { minHeight: 650, paddingHorizontal: 44, paddingTop: 90, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 80 },
-  heroCopy: { flex: 1, maxWidth: 650 },
-  kicker: { color: colors.coral, fontSize: 11, fontWeight: "800", letterSpacing: 1.6, marginBottom: 18 },
-  title: { color: colors.ink, fontSize: 52, lineHeight: 54, fontWeight: "900", letterSpacing: -2.8 },
-  titleDesktop: { fontSize: 78, lineHeight: 78, letterSpacing: -4.5 },
-  meta: { color: colors.muted, marginTop: 24, fontSize: 15, fontWeight: "700" },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 30 },
-  primary: { minHeight: 48, paddingHorizontal: 19, borderRadius: radii.sm, backgroundColor: colors.ink, flexDirection: "row", gap: 24, alignItems: "center", justifyContent: "center" },
-  primaryText: { color: "#fff", fontSize: 13, fontWeight: "800" },
-  primaryArrow: { color: colors.lime, fontSize: 18, fontWeight: "800" },
-  secondary: { minHeight: 48, paddingHorizontal: 19, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" },
-  secondaryText: { color: colors.ink, fontSize: 13, fontWeight: "800" },
-  pressed: { opacity: 0.75 },
-  demoWrap: { flex: 1, maxWidth: 520 },
-  demoWrapDesktop: { minWidth: 440 },
-  demoMeta: { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  demoCode: { color: colors.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  demoCount: { color: colors.muted, fontSize: 10, fontWeight: "800" },
-  demoCard: { minHeight: 320, padding: 30, justifyContent: "center", borderRadius: radii.lg, backgroundColor: colors.ink, ...shadow },
-  demoLabel: { color: colors.lime, fontSize: 10, fontWeight: "900", letterSpacing: 1.5 },
-  demoQuestion: { color: "#fff", fontSize: 30, lineHeight: 36, fontWeight: "800", letterSpacing: -0.7, marginTop: 22 },
-  demoRule: { height: 1, backgroundColor: "rgba(255,255,255,.14)", marginTop: 30 },
-  demoHint: { color: "#91A9A2", fontSize: 11, marginTop: 16, fontWeight: "600" },
-  ratingRow: { flexDirection: "row", gap: 7, marginTop: 10 },
-  rating: { flex: 1, minHeight: 40, borderWidth: 1, borderColor: colors.line, borderRadius: radii.sm, backgroundColor: colors.card, alignItems: "center", justifyContent: "center" },
-  ratingText: { color: colors.ink, fontSize: 11, fontWeight: "800" },
-  strip: { maxWidth: 1152, width: "100%", alignSelf: "center", paddingHorizontal: 20, paddingVertical: 24, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10 },
-  stripNumber: { color: colors.coral, fontSize: 24, fontWeight: "900" },
-  stripLabel: { color: colors.ink, fontSize: 10, fontWeight: "800", letterSpacing: 1.1 },
-  stripRule: { width: 1, height: 28, backgroundColor: colors.line, marginHorizontal: 12 },
-  section: { maxWidth: 1240, width: "100%", alignSelf: "center", paddingHorizontal: 20, paddingTop: 78, paddingBottom: 70 },
-  sectionHead: { marginBottom: 24 },
-  sectionKicker: { color: colors.coral, fontSize: 10, fontWeight: "900", letterSpacing: 1.5 },
-  sectionTitle: { color: colors.ink, fontSize: 34, lineHeight: 40, fontWeight: "900", letterSpacing: -1.3, marginTop: 8 },
-  unitGrid: { gap: 8 },
-  unitGridDesktop: { flexDirection: "row", flexWrap: "wrap" },
-  unit: { minHeight: 132, padding: 18, borderWidth: 1, borderColor: colors.line, borderRadius: radii.md, backgroundColor: colors.card, flexBasis: 250, flexGrow: 1 },
-  unitIndex: { color: colors.coral, fontSize: 10, fontWeight: "900" },
-  unitCode: { color: colors.muted, fontSize: 10, fontWeight: "800", marginTop: 18 },
-  unitName: { color: colors.ink, fontSize: 18, lineHeight: 22, fontWeight: "800", marginTop: 5 },
-  bottom: { maxWidth: 1152, width: "100%", alignSelf: "center", padding: 24, gap: 30, borderRadius: radii.lg, backgroundColor: colors.lime },
-  bottomDesktop: { flexDirection: "row", justifyContent: "space-between", padding: 38 },
-  bottomKicker: { color: colors.ink2, fontSize: 10, fontWeight: "900", letterSpacing: 1.4 },
-  bottomTitle: { color: colors.ink, fontSize: 28, fontWeight: "900", letterSpacing: -1, marginTop: 6 },
-  footer: { maxWidth: 1152, width: "100%", alignSelf: "center", paddingHorizontal: 20, paddingTop: 42, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  footerText: { color: colors.muted, fontSize: 11, fontWeight: "700" },
+  scroll: { width: "100%", maxWidth: 1120, alignSelf: "center", paddingHorizontal: 20, paddingTop: 48, paddingBottom: 44 },
+  head: { marginBottom: 34 },
+  kicker: { color: colors.coral, fontSize: 10, fontWeight: "900", letterSpacing: 1.5 },
+  total: { color: colors.ink, fontSize: 76, lineHeight: 78, fontWeight: "900", letterSpacing: -4.5, marginTop: 8 },
+  totalDesktop: { fontSize: 104, lineHeight: 104, letterSpacing: -6 },
+  totalLabel: { color: colors.muted, fontSize: 14, fontWeight: "800", marginTop: 2 },
+  name: { color: colors.ink, fontSize: 14, fontWeight: "800", marginTop: 16 },
+  start: { minHeight: 116, padding: 22, borderRadius: radii.lg, backgroundColor: colors.ink, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 20 },
+  startCode: { color: colors.lime, fontSize: 10, fontWeight: "900", letterSpacing: 1.2 },
+  startName: { color: "#fff", fontSize: 24, lineHeight: 29, fontWeight: "900", letterSpacing: -0.8, marginTop: 6 },
+  startRight: { alignItems: "flex-end", gap: 8 },
+  startCount: { color: "#fff", fontSize: 22, fontWeight: "900" },
+  startArrow: { color: colors.lime, fontSize: 22, fontWeight: "900" },
+  sectionHead: { marginTop: 36, marginBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  sectionTitle: { color: colors.ink, fontSize: 18, fontWeight: "900" },
+  textLink: { color: colors.ink2, fontSize: 12, fontWeight: "800" },
+  list: { gap: 8 },
+  grid: { flexDirection: "row", flexWrap: "wrap" },
+  deck: { minHeight: 104, padding: 16, borderTopWidth: 1, borderTopColor: colors.line, flexBasis: 320, flexGrow: 1 },
+  deckTop: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
+  deckCode: { color: colors.muted, fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  deckCount: { color: colors.coral, fontSize: 10, fontWeight: "900" },
+  deckName: { color: colors.ink, fontSize: 18, lineHeight: 22, fontWeight: "800", marginTop: 18 },
+  protect: { minHeight: 52, marginTop: 34, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: colors.line, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  protectText: { color: colors.ink, fontSize: 13, fontWeight: "800" },
+  protectArrow: { color: colors.coral, fontSize: 18, fontWeight: "900" },
+  pressed: { opacity: 0.72 },
 });
