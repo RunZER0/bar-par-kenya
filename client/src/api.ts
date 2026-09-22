@@ -87,6 +87,7 @@ const KIND_KEY = "barpar.kind";
 const DECK_CACHE_KEY = "barpar.cache.decks";
 const REVIEW_QUEUE_KEY = "barpar.pendingReviews";
 const LAST_DECK_KEY = "barpar.lastDeck";
+const HAS_REVIEWED_KEY = "barpar.hasReviewed";
 
 let token: string | null = null;
 
@@ -259,7 +260,12 @@ export const api = {
       return session;
     } catch (error) {
       const cached = await readJson<CardSession>(cacheKey);
-      if (cached?.cards?.length) return { ...cached, offline: true };
+      if (cached?.cards?.length) {
+        const pending = await getPendingReviews();
+        const pendingIds = new Set(pending.map((item) => item.cardId));
+        const cards = cached.cards.filter((card) => !pendingIds.has(card.id));
+        return { ...cached, cards, total: cards.length, offline: true };
+      }
       throw error;
     }
   },
@@ -273,7 +279,10 @@ export const api = {
       createdAt: new Date().toISOString(),
     };
     pending.push(item);
-    await savePendingReviews(pending);
+    await Promise.all([
+      savePendingReviews(pending),
+      storage.set(HAS_REVIEWED_KEY, "true"),
+    ]);
     return item;
   },
 
@@ -345,5 +354,9 @@ export const api = {
 
   async getLastDeck() {
     return storage.get(LAST_DECK_KEY);
+  },
+
+  async hasReviewed() {
+    return (await storage.get(HAS_REVIEWED_KEY)) === "true";
   },
 };
