@@ -8,9 +8,13 @@ on:
     paths:
       - "drizzle/**"
       - "src/db/schema.ts"
+      - "src/db/database-url.ts"
+      - "src/db/preflight.ts"
+      - "src/db/migrate.ts"
       - "src/db/seed.ts"
       - "src/db/atp-catalog.ts"
       - "src/db/verify.ts"
+      - "package.json"
       - ".github/workflows/database.yml"
 
 concurrency:
