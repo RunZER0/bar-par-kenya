@@ -149,6 +149,8 @@ export interface MindMapNode {
   kind: "unit" | "topic" | "issue";
   depth: number;
   position: number;
+  topicId?: string | null;
+  cardCount?: number;
 }
 
 export interface MindMapSummary {
