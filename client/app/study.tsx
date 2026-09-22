@@ -293,7 +293,11 @@ export default function Study() {
                   <Text style={styles.statLabel}>Again</Text>
                 </View>
               </View>
-              {pending > 0 ? <Text style={styles.completeMeta}>{pending} review{pending === 1 ? "" : "s"} will sync when connected</Text> : null}
+              {pending > 0
+                ? <Text style={styles.completeMeta}>{pending} review{pending === 1 ? "" : "s"} will sync when connected</Text>
+                : nextReview
+                  ? <Text style={styles.completeMeta}>Next review · {nextReview}</Text>
+                  : null}
               {lastQueued ? (
                 <View style={styles.undoBar}>
                   <Text style={styles.undoText}>Saved as {lastQueued.rating}</Text>
