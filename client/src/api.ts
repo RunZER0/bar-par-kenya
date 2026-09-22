@@ -316,7 +316,7 @@ export const api = {
     if (!pending.length) return { pending: 0, synced: 0 };
 
     await ensureSession();
-    const remaining: PendingReview[] = [];
+    let remaining = [...pending];
     let synced = 0;
 
     for (const item of pending) {
@@ -326,12 +326,19 @@ export const api = {
           body: JSON.stringify({ rating: item.rating }),
         });
         synced += 1;
-      } catch {
-        remaining.push(item);
+        remaining = remaining.filter((queued) => queued.id !== item.id);
+        await savePendingReviews(remaining);
+      } catch (error) {
+        const status = (error as Error & { status?: number }).status;
+        if (status === 400 || status === 404) {
+          remaining = remaining.filter((queued) => queued.id !== item.id);
+          await savePendingReviews(remaining);
+          continue;
+        }
+        break;
       }
     }
 
-    await savePendingReviews(remaining);
     return { pending: remaining.length, synced };
   },
 
