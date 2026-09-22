@@ -15,7 +15,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:verify": "tsx src/db/verify.ts",
-    "db:bootstrap": "npm run db:migrate && npm run db:seed && npm run db:verify"
+    "db:bootstrap": "npm run db:preflight && npm run db:migrate && npm run db:seed && npm run db:verify",
+    "db:preflight": "tsx src/db/preflight.ts"
   },
   "engines": {
     "node": ">=22"
