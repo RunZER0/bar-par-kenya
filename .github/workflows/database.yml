@@ -1,0 +1,39 @@
+name: Database bootstrap
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "drizzle/**"
+      - "src/db/schema.ts"
+      - "src/db/seed.ts"
+      - "src/db/atp-catalog.ts"
+      - "src/db/verify.ts"
+      - ".github/workflows/database.yml"
+
+concurrency:
+  group: bar-par-production-database
+  cancel-in-progress: false
+
+jobs:
+  migrate-seed-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Require database secret
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is missing"
+            exit 1
+          fi
+      - run: npm ci
+      - run: npm run db:bootstrap
