@@ -88,6 +88,56 @@ describe("Bar Par Kenya API", () => {
     });
   });
 
+
+  it("serves deck sessions, four-way card reviews, and mind maps", async () => {
+    const { app } = setup();
+    const { token } = await guest(app);
+    const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+
+    const decksResponse = await app.request("/v1/decks", { headers });
+    expect(decksResponse.status).toBe(200);
+    const decks = await decksResponse.json() as { data: Array<{ subjectId: string; unitCode: string }> };
+    expect(decks.data[0]).toMatchObject({ unitCode: "ATP100" });
+
+    const sessionResponse = await app.request("/v1/cards/session", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ subjectId: decks.data[0]!.subjectId, limit: 2 }),
+    });
+    expect(sessionResponse.status).toBe(200);
+    const session = await sessionResponse.json() as { data: { cards: Array<{ id: string; front: string }>; total: number } };
+    expect(session.data.total).toBeGreaterThan(0);
+    expect(session.data.cards[0]?.front).toBeTruthy();
+
+    const reviewResponse = await app.request("/v1/cards/" + session.data.cards[0]!.id + "/review", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ rating: "good" }),
+    });
+    expect(reviewResponse.status).toBe(200);
+    expect(await reviewResponse.json()).toMatchObject({
+      data: { rating: "good", state: "review", reviewCount: 1 },
+    });
+
+    const mapsResponse = await app.request("/v1/mind-maps");
+    expect(mapsResponse.status).toBe(200);
+    const maps = await mapsResponse.json() as { data: Array<{ slug: string; unitCode: string }> };
+    expect(maps.data[0]).toMatchObject({ slug: "civil-litigation", unitCode: "ATP100" });
+
+    const mapResponse = await app.request("/v1/mind-maps/civil-litigation");
+    expect(mapResponse.status).toBe(200);
+    expect(await mapResponse.json()).toMatchObject({
+      data: {
+        unitCode: "ATP100",
+        nodes: expect.arrayContaining([
+          expect.objectContaining({ kind: "unit" }),
+          expect.objectContaining({ kind: "topic" }),
+          expect.objectContaining({ kind: "issue" }),
+        ]),
+      },
+    });
+  });
+
   it("upgrades a guest without losing its learner identity, then supports login", async () => {
     const { app } = setup();
     const { token, learnerId } = await guest(app);

@@ -175,6 +175,8 @@ export function createApp({ store, auth, corsOrigins, mediaStorage, adminApiKey 
   });
 
   app.use("/v1/me", requireAuth);
+  app.use("/v1/decks", requireAuth);
+  app.use("/v1/cards/*", requireAuth);
   app.use("/v1/flashcards", requireAuth);
   app.use("/v1/flashcards/*", requireAuth);
   app.use("/v1/practice/*", requireAuth);
@@ -189,6 +191,52 @@ export function createApp({ store, auth, corsOrigins, mediaStorage, adminApiKey 
   app.get("/v1/me", async (context) => {
     const learner = await store.getLearner(context.get("auth").learnerId);
     return context.json({ data: learner });
+  });
+
+
+  app.get("/v1/decks", async (context) => context.json({
+    data: await store.listDecks(context.get("auth").learnerId),
+  }));
+
+  app.post("/v1/cards/session", zValidator("json", z.object({
+    subjectId: uuidSchema.optional(),
+    topicId: uuidSchema.optional(),
+    limit: z.number().int().min(1).max(100).default(30),
+  }).refine((value) => !(value.subjectId && value.topicId), {
+    message: "Choose either subjectId or topicId, not both",
+  })), async (context) => {
+    const body = context.req.valid("json");
+    const session = await store.createCardSession({
+      learnerId: context.get("auth").learnerId,
+      ...(body.subjectId ? { subjectId: body.subjectId } : {}),
+      ...(body.topicId ? { topicId: body.topicId } : {}),
+      limit: body.limit,
+    });
+    return context.json({ data: session });
+  });
+
+  app.post("/v1/cards/:cardId/review", zValidator("json", z.object({
+    rating: z.enum(["again", "hard", "good", "easy"]),
+  })), async (context) => {
+    const cardId = context.req.param("cardId");
+    if (!uuidSchema.safeParse(cardId).success) {
+      return context.json({ error: { code: "validation_error", message: "Invalid flashcard id" } }, 400);
+    }
+    return context.json({
+      data: await store.reviewCard({
+        learnerId: context.get("auth").learnerId,
+        flashcardId: cardId,
+        rating: context.req.valid("json").rating,
+      }),
+    });
+  });
+
+  app.get("/v1/mind-maps", async (context) => context.json({ data: await store.listMindMaps() }));
+
+  app.get("/v1/mind-maps/:slug", async (context) => {
+    const map = await store.getMindMap(context.req.param("slug"));
+    if (!map) return context.json({ error: { code: "not_found", message: "Mind map not found" } }, 404);
+    return context.json({ data: map });
   });
 
   app.get("/v1/flashcards", zValidator("query", z.object({

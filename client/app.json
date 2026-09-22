@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Bar Par Kenya",
+    "slug": "bar-par-kenya",
+    "scheme": "barpar",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "name": "Bar Par Kenya",
+      "shortName": "Bar Par"
+    },
+    "android": {
+      "package": "ke.co.barpar.app"
+    }
+  }
+}

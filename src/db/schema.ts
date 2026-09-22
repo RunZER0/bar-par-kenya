@@ -17,6 +17,9 @@ export const practiceMode = pgEnum("practice_mode", ["practice", "timed"]);
 export const sessionStatus = pgEnum("session_status", ["active", "completed"]);
 export const pushPlatform = pgEnum("push_platform", ["android", "ios", "web"]);
 export const flashcardRating = pgEnum("flashcard_rating", ["again", "known"]);
+export const cardRating = pgEnum("card_rating", ["again", "hard", "good", "easy"]);
+export const cardState = pgEnum("card_state", ["new", "learning", "review"]);
+export const mindMapNodeKind = pgEnum("mind_map_node_kind", ["unit", "topic", "issue"]);
 
 export const learners = pgTable("learners", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -40,6 +43,7 @@ export const subjects = pgTable("subjects", {
   description: text("description").notNull(),
   position: integer("position").notNull(),
   published: boolean("published").notNull().default(false),
+  unitCode: text("unit_code").unique(),
 });
 
 export const topics = pgTable("topics", {
@@ -119,3 +123,43 @@ export const pushTokens = pgTable("push_tokens", {
   active: boolean("active").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+
+export const flashcards = pgTable("flashcards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  topicId: uuid("topic_id").notNull().references(() => topics.id, { onDelete: "cascade" }),
+  front: text("front").notNull(),
+  back: text("back").notNull(),
+  source: text("source"),
+  position: integer("position").notNull().default(0),
+  published: boolean("published").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [uniqueIndex("flashcards_topic_position_unique").on(table.topicId, table.position)]);
+
+export const cardReviews = pgTable("card_reviews", {
+  learnerId: uuid("learner_id").notNull().references(() => learners.id, { onDelete: "cascade" }),
+  flashcardId: uuid("flashcard_id").notNull().references(() => flashcards.id, { onDelete: "cascade" }),
+  rating: cardRating("rating").notNull(),
+  state: cardState("state").notNull().default("new"),
+  reviewCount: integer("review_count").notNull().default(0),
+  lapses: integer("lapses").notNull().default(0),
+  intervalDays: integer("interval_days").notNull().default(0),
+  easePermille: integer("ease_permille").notNull().default(2500),
+  dueAt: timestamp("due_at", { withTimezone: true }).notNull().defaultNow(),
+  lastReviewedAt: timestamp("last_reviewed_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [primaryKey({ columns: [table.learnerId, table.flashcardId] })]);
+
+export const mindMapNodes = pgTable("mind_map_nodes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  subjectId: uuid("subject_id").notNull().references(() => subjects.id, { onDelete: "cascade" }),
+  key: text("key").notNull().unique(),
+  parentKey: text("parent_key"),
+  label: text("label").notNull(),
+  kind: mindMapNodeKind("kind").notNull(),
+  depth: integer("depth").notNull(),
+  position: integer("position").notNull(),
+  published: boolean("published").notNull().default(false),
+}, (table) => [
+  uniqueIndex("mind_map_nodes_subject_position_unique").on(table.subjectId, table.position),
+]);

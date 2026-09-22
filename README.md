@@ -1,6 +1,6 @@
 # Bar Par Kenya API
 
-Backend foundation for an Expo / React Native Web bar-exam preparation product.
+KSL study platform with a Hono/PostgreSQL API and an Expo + React Native + React Native Web client.
 
 ## What is included
 
@@ -8,12 +8,15 @@ Backend foundation for an Expo / React Native Web bar-exam preparation product.
 - PostgreSQL schema and Drizzle ORM migrations
 - Guest-first authentication: learners can practise before creating an account
 - Registration that upgrades the same guest learner, preserving progress
-- Published subjects, topics, and server-scored multiple-choice questions
+- Published ATP units, topics, and server-scored multiple-choice questions
+- First-class flashcards with spaced repetition: Again / Hard / Good / Easy
+- ATP mind maps generated from the nine-unit syllabus hierarchy
 - Practice sessions, attempts, progress, streaks, and bookmarks
 - Opt-in notification preferences and Expo/device push-token storage
 - Guided-discovery checklist for the client
 - Cloudflare R2 signed media uploads/downloads with server-generated keys
-- A polished browser study dashboard served from the API root for local testing
+- Responsive Expo Router client for Android and web
+- Legacy browser testing dashboard still served from the API root for API validation
 - Docker and environment configuration suitable for Railway or Render
 - Integration-style API tests using an in-memory store
 
@@ -54,6 +57,26 @@ npm run db:migrate
 npm run db:seed
 ```
 
+## Expo client
+
+The production-facing client lives in `client/`.
+
+```bash
+cd client
+cp .env.example .env
+npm install
+npm run web
+```
+
+Set `EXPO_PUBLIC_API_URL` to the API origin. The same client targets Android with Expo EAS and web with Expo static export.
+
+Primary routes:
+
+- `/` — landing
+- `/study` — flashcard decks and review sessions
+- `/mind-maps` — all nine ATP units
+- `/mind-maps/[slug]` — topic/issue map for one unit
+
 ## Client integration
 
 1. Call `POST /v1/auth/guest` on first meaningful use and store the returned bearer token in secure storage.
@@ -66,6 +89,7 @@ See [docs/API.md](docs/API.md) for the HTTP contract.
 ## Project structure
 
 ```text
+client/                 Expo Router app for Android and web
 src/app.ts              HTTP routes, validation, and response shaping
 src/postgres-store.ts   PostgreSQL implementation of product behavior
 src/db/schema.ts        Drizzle schema
