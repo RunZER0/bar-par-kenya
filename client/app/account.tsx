@@ -48,14 +48,20 @@ export default function Account() {
   }
 
   async function signOut() {
+    setMessage(null);
     setSaving(true);
-    await api.logout();
-    setLearner(null);
-    setDisplayName("");
-    setEmail("");
-    setPassword("");
-    setMode("login");
-    setSaving(false);
+    try {
+      await api.logout();
+      setLearner(null);
+      setDisplayName("");
+      setEmail("");
+      setPassword("");
+      setMode("login");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not sign out.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const disabled = saving
@@ -78,6 +84,7 @@ export default function Account() {
                 <Text style={styles.eyebrow}>ACCOUNT</Text>
                 <Text style={styles.title}>{learner.displayName || "Account"}</Text>
                 <Text style={styles.email}>{learner.email}</Text>
+                {message ? <Text style={styles.error}>{message}</Text> : null}
                 <View style={styles.profileActions}>
                   <Link href="/" asChild>
                     <Pressable style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
