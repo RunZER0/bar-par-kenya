@@ -1,5 +1,6 @@
 import { Link, usePathname } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand } from "./Brand";
 import { colors, radii } from "@/theme";
 
@@ -13,9 +14,10 @@ export function AppHeader() {
   const path = usePathname();
   const { width } = useWindowDimensions();
   const compact = width < 720;
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, { paddingTop: insets.top, minHeight: 68 + insets.top }]}>
       <Link href="/" asChild>
         <Pressable accessibilityLabel="Bar Par home"><Brand compact={compact} /></Pressable>
       </Link>
