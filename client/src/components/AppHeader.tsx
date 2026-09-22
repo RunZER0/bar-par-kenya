@@ -42,7 +42,7 @@ export function AppHeader() {
           accessibilityLabel="Account"
           style={({ pressed }) => [styles.account, path.startsWith("/account") && styles.accountActive, pressed && styles.pressed]}
         >
-          <Text style={styles.accountText}>{compact ? "●" : "Account"}</Text>
+          <Text style={styles.accountText}>{compact ? "Me" : "Account"}</Text>
         </Pressable>
       </Link>
     </View>
