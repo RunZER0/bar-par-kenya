@@ -16,7 +16,6 @@ KSL study platform with a Hono/PostgreSQL API and an Expo + React Native + React
 - Guided-discovery checklist for the client
 - Cloudflare R2 signed media uploads/downloads with server-generated keys
 - Responsive Expo Router client for Android and web
-- Legacy browser testing dashboard still served from the API root for API validation
 - Docker and environment configuration for Render
 - Integration-style API tests using an in-memory store
 
@@ -34,15 +33,6 @@ npm run db:migrate
 npm run db:seed
 npm run dev
 ```
-
-Open `http://localhost:3000/` to use the browser testing dashboard. It creates a
-guest learner automatically, then exercises subjects, practice sessions,
-feedback, progress, bookmarks, and guest-to-account registration against the
-same API origin.
-
-If Docker/PostgreSQL is not available, `npm run dev:memory` starts the same
-dashboard against the demo in-memory store for UI validation. Data resets when
-that process stops; use the normal `npm run dev` path for persistent data.
 
 Use a random secret of at least 32 characters for `JWT_SECRET` outside local development.
 
