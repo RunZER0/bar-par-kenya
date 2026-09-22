@@ -69,7 +69,7 @@ try {
   }
 
   const [target] = await metadata<{ schemaName: string | null; searchPath: string }[]>`
-    SELECT current_schema() AS "schemaName", current_setting(\'search_path\') AS "searchPath"
+    SELECT current_schema() AS "schemaName", current_setting('search_path') AS "searchPath"
   `;
 
   console.log(JSON.stringify({
