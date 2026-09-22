@@ -36,6 +36,7 @@ export default function Today() {
   const [lastDeckId, setLastDeckId] = useState<string | null>(null);
   const [pending, setPending] = useState(0);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [usingOffline, setUsingOffline] = useState(false);
 
   async function load() {
     setState("loading");
@@ -53,6 +54,7 @@ export default function Today() {
       setLastDeckId(last);
       setPending(pendingCount);
       setHasReviewed(reviewedBefore);
+      setUsingOffline(api.isUsingOfflineCache());
       setState("ready");
     } catch {
       setState("error");
@@ -114,10 +116,12 @@ export default function Today() {
             </View>
           </View>
 
-          {pending > 0 ? (
+          {usingOffline || pending > 0 ? (
             <View style={styles.syncRow}>
-              <View style={styles.syncDot} />
-              <Text style={styles.syncText}>{pending} review{pending === 1 ? "" : "s"} waiting to sync</Text>
+              <View style={[styles.syncDot, usingOffline && styles.syncDotOffline]} />
+              <Text style={styles.syncText}>
+                {usingOffline ? "Offline" : `${pending} review${pending === 1 ? "" : "s"} waiting to sync`}
+              </Text>
               <Pressable onPress={() => void load()}><Text style={styles.syncAction}>Retry</Text></Pressable>
             </View>
           ) : null}
@@ -210,6 +214,7 @@ const styles = StyleSheet.create({
   sideDivider: { width: 1, height: 42, backgroundColor: colors.line, marginHorizontal: 20 },
   syncRow: { minHeight: 44, marginTop: 14, paddingHorizontal: 14, borderRadius: radii.sm, backgroundColor: colors.cream, flexDirection: "row", alignItems: "center", gap: 9 },
   syncDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.coral },
+  syncDotOffline: { backgroundColor: colors.muted },
   syncText: { flex: 1, color: colors.ink2, fontSize: 11, fontWeight: "700" },
   syncAction: { color: colors.ink, fontSize: 11, fontWeight: "900" },
   section: { paddingTop: 36 },
