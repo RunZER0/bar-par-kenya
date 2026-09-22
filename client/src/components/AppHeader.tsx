@@ -4,8 +4,9 @@ import { Brand } from "./Brand";
 import { colors, radii } from "@/theme";
 
 const links = [
-  { href: "/study", label: "Flashcards" },
-  { href: "/mind-maps", label: "Mind maps" },
+  { href: "/", label: "Today" },
+  { href: "/study", label: "Cards" },
+  { href: "/mind-maps", label: "Maps" },
 ] as const;
 
 export function AppHeader() {
@@ -16,52 +17,66 @@ export function AppHeader() {
   return (
     <View style={styles.shell}>
       <Link href="/" asChild>
-        <Pressable><Brand compact={compact} /></Pressable>
+        <Pressable accessibilityLabel="Bar Par home"><Brand compact={compact} /></Pressable>
       </Link>
-      <View style={styles.links}>
-        {links.map((item) => {
-          const active = path.startsWith(item.href);
-          return (
-            <Link key={item.href} href={item.href} asChild>
-              <Pressable style={({ pressed }) => [styles.link, active && styles.active, pressed && styles.pressed]}>
-                <Text style={[styles.linkText, active && styles.activeText]}>{item.label}</Text>
-              </Pressable>
-            </Link>
-          );
-        })}
-      </View>
+
       {!compact ? (
-        <Link href="/study" asChild>
-          <Pressable style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
-            <Text style={styles.primaryText}>Study now</Text>
-          </Pressable>
-        </Link>
-      ) : <View style={{ width: 32 }} />}
+        <View style={styles.links}>
+          {links.map((item) => {
+            const active = item.href === "/" ? path === "/" : path.startsWith(item.href);
+            return (
+              <Link key={item.href} href={item.href} asChild>
+                <Pressable style={({ pressed }) => [styles.link, active && styles.active, pressed && styles.pressed]}>
+                  <Text style={[styles.linkText, active && styles.activeText]}>{item.label}</Text>
+                </Pressable>
+              </Link>
+            );
+          })}
+        </View>
+      ) : <View style={styles.spacer} />}
+
+      <Link href="/account" asChild>
+        <Pressable
+          accessibilityLabel="Account"
+          style={({ pressed }) => [styles.account, path.startsWith("/account") && styles.accountActive, pressed && styles.pressed]}
+        >
+          <Text style={styles.accountText}>{compact ? "●" : "Account"}</Text>
+        </Pressable>
+      </Link>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   shell: {
-    minHeight: 72,
-    paddingHorizontal: Platform.select({ web: 32, default: 18 }),
+    minHeight: 68,
+    paddingHorizontal: Platform.select({ web: 28, default: 18 }),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
-    backgroundColor: "rgba(244,245,240,.97)",
+    backgroundColor: "rgba(244,245,240,.98)",
     gap: 16,
   },
+  spacer: { flex: 1 },
   links: { flexDirection: "row", alignItems: "center", gap: 4 },
-  link: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: radii.pill },
+  link: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: radii.pill },
   active: { backgroundColor: colors.cream },
   linkText: { color: colors.muted, fontSize: 13, fontWeight: "700" },
   activeText: { color: colors.ink },
-  primary: {
-    minHeight: 40, paddingHorizontal: 16, borderRadius: radii.sm,
-    backgroundColor: colors.ink, alignItems: "center", justifyContent: "center",
+  account: {
+    minHeight: 38,
+    minWidth: 38,
+    paddingHorizontal: 13,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.card,
   },
-  primaryText: { color: "#fff", fontSize: 12, fontWeight: "800" },
-  pressed: { opacity: 0.72 },
+  accountActive: { borderColor: colors.ink },
+  accountText: { color: colors.ink, fontSize: 11, fontWeight: "800" },
+  pressed: { opacity: 0.68 },
 });
