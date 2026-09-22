@@ -63,7 +63,16 @@ export default function Study() {
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(() => {
       setLastQueued(null);
-      void api.syncPendingReviews().then((result) => setPending(result.pending));
+      void api.syncPendingReviews().then(async (result) => {
+        setPending(result.pending);
+        try {
+          const refreshed = await api.listDecks();
+          setDecks(refreshed);
+          if (selectedDeck) {
+            setSelectedDeck(refreshed.find((item) => item.subjectId === selectedDeck.subjectId) ?? selectedDeck);
+          }
+        } catch {}
+      });
     }, 4500);
   }
 
@@ -118,21 +127,9 @@ export default function Study() {
   }
 
   async function finishSession() {
-    if (syncTimer.current) {
-      clearTimeout(syncTimer.current);
-      syncTimer.current = null;
-    }
-    setLastQueued(null);
-    const sync = await api.syncPendingReviews();
-    setPending(sync.pending);
-    try {
-      const refreshed = await api.listDecks();
-      setDecks(refreshed);
-      if (selectedDeck) {
-        setSelectedDeck(refreshed.find((item) => item.subjectId === selectedDeck.subjectId) ?? selectedDeck);
-      }
-    } catch {}
     setPhase("complete");
+    await refreshPending();
+    await flushSoon();
   }
 
   async function rate(rating: CardReview["rating"]) {
@@ -165,6 +162,7 @@ export default function Study() {
     }
     setIndex(lastQueued.cardIndex);
     setRevealed(true);
+    setPhase("ready");
     setReviewed((value) => Math.max(0, value - 1));
     if (lastQueued.rating === "again") setRepeated((value) => Math.max(0, value - 1));
     setLastQueued(null);
@@ -296,6 +294,12 @@ export default function Study() {
                 </View>
               </View>
               {pending > 0 ? <Text style={styles.completeMeta}>{pending} review{pending === 1 ? "" : "s"} will sync when connected</Text> : null}
+              {lastQueued ? (
+                <View style={styles.undoBar}>
+                  <Text style={styles.undoText}>Saved as {lastQueued.rating}</Text>
+                  <Pressable onPress={() => void undoLast()}><Text style={styles.undoAction}>Undo</Text></Pressable>
+                </View>
+              ) : null}
               <View style={styles.completeActions}>
                 {nextDeck ? (
                   <Pressable onPress={() => void openDeck(nextDeck)} style={({ pressed }) => [styles.primary, pressed && styles.pressed]}>
