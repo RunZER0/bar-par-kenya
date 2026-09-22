@@ -1,4 +1,4 @@
-import { Link, useLocalSearchParams, router } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
@@ -73,9 +73,11 @@ export default function MindMapDetail() {
     <View style={styles.page}>
       <AppHeader />
       <View style={styles.toolbar}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-          <Text style={styles.backText}>← Maps</Text>
-        </Pressable>
+        <Link href="/mind-maps" asChild>
+          <Pressable style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+            <Text style={styles.backText}>← Maps</Text>
+          </Pressable>
+        </Link>
         <View style={styles.searchWrap}>
           <Text style={styles.searchGlyph}>⌕</Text>
           <TextInput
