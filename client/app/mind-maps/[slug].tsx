@@ -6,6 +6,20 @@ import { StatePanel } from "@/components/StatePanel";
 import { api, type MindMapData, type MindMapNode } from "@/api";
 import { colors, radii } from "@/theme";
 
+export function generateStaticParams() {
+  return [
+    { slug: "civil-litigation" },
+    { slug: "criminal-litigation" },
+    { slug: "probate-administration" },
+    { slug: "legal-writing-drafting" },
+    { slug: "trial-advocacy" },
+    { slug: "professional-ethics" },
+    { slug: "legal-practice-management" },
+    { slug: "conveyancing" },
+    { slug: "commercial-transactions" },
+  ];
+}
+
 export default function MindMapDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { width } = useWindowDimensions();
