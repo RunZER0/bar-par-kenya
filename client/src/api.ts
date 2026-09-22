@@ -88,6 +88,7 @@ const DECK_CACHE_KEY = "barpar.cache.decks";
 const REVIEW_QUEUE_KEY = "barpar.pendingReviews";
 const LAST_DECK_KEY = "barpar.lastDeck";
 const HAS_REVIEWED_KEY = "barpar.hasReviewed";
+const LEARNER_CACHE_KEY = "barpar.cache.learner";
 
 let token: string | null = null;
 
@@ -148,8 +149,11 @@ async function raw(path: string, init: RequestInit = {}) {
 
 async function setAuth(payload: { accessToken: string; learner: Learner }) {
   token = String(payload.accessToken);
-  await storage.set(TOKEN_KEY, token);
-  await storage.set(KIND_KEY, payload.learner.kind);
+  await Promise.all([
+    storage.set(TOKEN_KEY, token),
+    storage.set(KIND_KEY, payload.learner.kind),
+    writeJson(LEARNER_CACHE_KEY, payload.learner),
+  ]);
   return payload;
 }
 
@@ -202,7 +206,15 @@ async function savePendingReviews(items: PendingReview[]) {
 
 export const api = {
   async getMe() {
-    return authed<Learner>("/v1/me");
+    try {
+      const learner = await authed<Learner>("/v1/me");
+      await writeJson(LEARNER_CACHE_KEY, learner);
+      return learner;
+    } catch (error) {
+      const cached = await readJson<Learner>(LEARNER_CACHE_KEY);
+      if (cached) return cached;
+      throw error;
+    }
   },
 
   async registerAccount(input: { displayName: string; email: string; password: string }) {
@@ -229,6 +241,11 @@ export const api = {
       storage.remove(TOKEN_KEY),
       storage.remove(KIND_KEY),
       storage.remove(DEVICE_KEY),
+      storage.remove(LEARNER_CACHE_KEY),
+      storage.remove(DECK_CACHE_KEY),
+      storage.remove(REVIEW_QUEUE_KEY),
+      storage.remove(LAST_DECK_KEY),
+      storage.remove(HAS_REVIEWED_KEY),
     ]);
   },
 
