@@ -17,7 +17,7 @@ KSL study platform with a Hono/PostgreSQL API and an Expo + React Native + React
 - Cloudflare R2 signed media uploads/downloads with server-generated keys
 - Responsive Expo Router client for Android and web
 - Legacy browser testing dashboard still served from the API root for API validation
-- Docker and environment configuration suitable for Railway or Render
+- Docker and environment configuration for Render
 - Integration-style API tests using an in-memory store
 
 The seed data intentionally contains only neutral study-skills demo content. Substantive Kenyan legal questions should go through legal/editorial review before publication.
@@ -68,7 +68,7 @@ npm install
 npm run web
 ```
 
-Set `EXPO_PUBLIC_API_URL` to the API origin. The same client targets Android with Expo EAS and web with Expo static export.
+Set `EXPO_PUBLIC_API_URL` to the Render API origin. The same client targets Android with Expo EAS and the web build is deployed as a Render static site.
 
 Primary routes:
 
@@ -100,3 +100,15 @@ test/                   End-to-end request-flow tests with an in-memory store
 ```
 
 R2 is optional during local development. When its four environment values and `ADMIN_API_KEY` are configured, the admin media endpoints issue short-lived signed URLs. Browser uploads also require an R2 bucket CORS rule allowing `PUT` and the `Content-Type` header from your web origin.
+
+
+## Render deployment
+
+The repository includes a root `render.yaml` Blueprint with two services:
+
+- `bar-par-api` — Node web service running the Hono API.
+- `bar-par-web` — Expo web export served as a Render static site.
+
+The web service reads `EXPO_PUBLIC_API_URL` at build time and should point to the public Render URL for `bar-par-api`. PostgreSQL remains hosted by Stashi; the API receives that connection through `DATABASE_URL`.
+
+Vercel is not part of the Bar Par deployment architecture.
