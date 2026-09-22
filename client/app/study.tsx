@@ -214,6 +214,7 @@ export default function Study() {
           </View>
           <ScrollView
             horizontal={!desktop}
+            nestedScrollEnabled
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={[styles.deckList, !desktop && styles.deckListMobile]}
           >
