@@ -1,6 +1,7 @@
 import { Link, usePathname } from "expo-router";
 import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { colors } from "@/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const items = [
   { href: "/", label: "Today" },
@@ -11,10 +12,11 @@ const items = [
 export function MobileNav() {
   const { width } = useWindowDimensions();
   const path = usePathname();
+  const insets = useSafeAreaInsets();
   if (width >= 720) return null;
 
   return (
-    <View style={styles.shell}>
+    <View style={[styles.shell, { bottom: Math.max(insets.bottom, Platform.OS === "web" ? 12 : 10) }]}>
       {items.map((item) => {
         const active = item.href === "/" ? path === "/" : path.startsWith(item.href);
         return (
@@ -39,7 +41,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 12,
     right: 12,
-    bottom: Platform.OS === "web" ? 12 : 10,
     minHeight: 58,
     paddingHorizontal: 8,
     borderRadius: 18,
