@@ -243,6 +243,8 @@ export const api = {
   },
 
   async logout() {
+    const sync = await api.syncPendingReviews();
+    if (sync.pending > 0) throw new Error("Connect before signing out so pending reviews can sync.");
     token = null;
     await Promise.all([
       storage.remove(TOKEN_KEY),
