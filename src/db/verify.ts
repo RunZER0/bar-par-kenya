@@ -1,11 +1,10 @@
 import { and, count, eq } from "drizzle-orm";
-import { loadConfig } from "../config.js";
 import { ATP_UNITS, STARTER_FLASHCARDS } from "./atp-catalog.js";
 import { createDatabase } from "./client.js";
+import { databaseUrl } from "./database-url.js";
 import { flashcards, mindMapNodes, subjects, topics } from "./schema.js";
 
-const config = loadConfig();
-const database = createDatabase(config.DATABASE_URL, 1);
+const database = createDatabase(databaseUrl(), 1);
 
 try {
   const subjectRows = await database.db.select({
