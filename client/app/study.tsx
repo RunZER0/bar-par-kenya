@@ -161,7 +161,7 @@ export default function Study() {
           </View>
 
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: String(progress) + "%" }]} />
+            <View style={[styles.progressFill, { width: (String(progress) + "%") as any }]} />
           </View>
 
           {phase === "loading" ? (
