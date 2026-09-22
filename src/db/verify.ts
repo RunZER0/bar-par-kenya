@@ -1,10 +1,13 @@
 import { and, count, eq } from "drizzle-orm";
+import postgres from "postgres";
 import { ATP_UNITS, STARTER_FLASHCARDS } from "./atp-catalog.js";
 import { createDatabase } from "./client.js";
 import { databaseUrl } from "./database-url.js";
 import { flashcards, mindMapNodes, subjects, topics } from "./schema.js";
 
-const database = createDatabase(databaseUrl(), 1);
+const url = databaseUrl();
+const database = createDatabase(url, 1);
+const metadata = postgres(url, { max: 1, prepare: false });
 
 try {
   const subjectRows = await database.db.select({
@@ -65,8 +68,14 @@ try {
     throw new Error("Mind maps contain no topic/issue nodes");
   }
 
+  const [target] = await metadata<{ schemaName: string | null; searchPath: string }[]>`
+    SELECT current_schema() AS "schemaName", current_setting(\'search_path\') AS "searchPath"
+  `;
+
   console.log(JSON.stringify({
     ok: true,
+    targetSchema: target?.schemaName ?? null,
+    searchPath: target?.searchPath ?? null,
     publishedUnits: subjectRows.length,
     publishedFlashcards: cardTotal,
     publishedMindMapNodes: nodeTotal,
@@ -80,4 +89,5 @@ try {
   }, null, 2));
 } finally {
   await database.close();
+  await metadata.end();
 }
