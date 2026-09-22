@@ -125,9 +125,10 @@ async function ensureSession() {
     method: "POST",
     body: JSON.stringify({ deviceId }),
   });
-  token = auth.accessToken;
-  await storage.set("barpar.token", token);
-  return token;
+  const accessToken = String(auth.accessToken);
+  token = accessToken;
+  await storage.set("barpar.token", accessToken);
+  return accessToken;
 }
 
 async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
