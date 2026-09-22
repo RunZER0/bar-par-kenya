@@ -69,6 +69,8 @@ export type MindMapNode = {
   kind: "unit" | "topic" | "issue";
   depth: number;
   position: number;
+  topicId?: string | null;
+  cardCount?: number;
 };
 
 export type MindMapData = MindMapSummary & { nodes: MindMapNode[] };
