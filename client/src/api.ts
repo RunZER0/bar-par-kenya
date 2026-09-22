@@ -93,6 +93,7 @@ const HAS_REVIEWED_KEY = "barpar.hasReviewed";
 const LEARNER_CACHE_KEY = "barpar.cache.learner";
 
 let token: string | null = null;
+let offlineCache = false;
 
 const storage = {
   async get(key: string) {
@@ -210,11 +211,15 @@ export const api = {
   async getMe() {
     try {
       const learner = await authed<Learner>("/v1/me");
+      offlineCache = false;
       await writeJson(LEARNER_CACHE_KEY, learner);
       return learner;
     } catch (error) {
       const cached = await readJson<Learner>(LEARNER_CACHE_KEY);
-      if (cached) return cached;
+      if (cached) {
+        offlineCache = true;
+        return cached;
+      }
       throw error;
     }
   },
@@ -254,11 +259,15 @@ export const api = {
   async listDecks() {
     try {
       const decks = await authed<Deck[]>("/v1/decks");
+      offlineCache = false;
       await writeJson(DECK_CACHE_KEY, decks);
       return decks;
     } catch (error) {
       const cached = await readJson<Deck[]>(DECK_CACHE_KEY);
-      if (cached) return cached;
+      if (cached) {
+        offlineCache = true;
+        return cached;
+      }
       throw error;
     }
   },
@@ -275,6 +284,7 @@ export const api = {
           limit: 30,
         }),
       });
+      offlineCache = false;
       await writeJson(cacheKey, session);
       return session;
     } catch (error) {
@@ -283,6 +293,7 @@ export const api = {
         const pending = await getPendingReviews();
         const pendingIds = new Set(pending.map((item) => item.cardId));
         const cards = cached.cards.filter((card) => !pendingIds.has(card.id));
+        offlineCache = true;
         return { ...cached, cards, total: cards.length, offline: true };
       }
       throw error;
@@ -352,11 +363,15 @@ export const api = {
     const key = "barpar.cache.maps";
     try {
       const maps = await raw("/v1/mind-maps") as MindMapSummary[];
+      offlineCache = false;
       await writeJson(key, maps);
       return maps;
     } catch (error) {
       const cached = await readJson<MindMapSummary[]>(key);
-      if (cached) return cached;
+      if (cached) {
+        offlineCache = true;
+        return cached;
+      }
       throw error;
     }
   },
@@ -365,11 +380,15 @@ export const api = {
     const key = `barpar.cache.map.${slug}`;
     try {
       const map = await raw(`/v1/mind-maps/${encodeURIComponent(slug)}`) as MindMapData;
+      offlineCache = false;
       await writeJson(key, map);
       return map;
     } catch (error) {
       const cached = await readJson<MindMapData>(key);
-      if (cached) return cached;
+      if (cached) {
+        offlineCache = true;
+        return cached;
+      }
       throw error;
     }
   },
@@ -384,5 +403,9 @@ export const api = {
 
   async hasReviewed() {
     return (await storage.get(HAS_REVIEWED_KEY)) === "true";
+  },
+
+  isUsingOfflineCache() {
+    return offlineCache;
   },
 };
