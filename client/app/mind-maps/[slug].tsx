@@ -111,9 +111,19 @@ export default function MindMapDetail() {
                 <Text style={styles.count}>{allIssues.length} issues</Text>
               </View>
             </View>
-            <Link href={{ pathname: "/study", params: { subjectId: data.subjectId } }} asChild>
+            <Link
+              href={{
+                pathname: "/study",
+                params: selectedTopic?.topicId && (selectedTopic.cardCount ?? 0) > 0
+                  ? { subjectId: data.subjectId, topicId: selectedTopic.topicId }
+                  : { subjectId: data.subjectId },
+              }}
+              asChild
+            >
               <Pressable style={({ pressed }) => [styles.studyButton, pressed && styles.pressed]}>
-                <Text style={styles.studyButtonText}>Study unit</Text>
+                <Text style={styles.studyButtonText}>
+                  {selectedTopic?.topicId && (selectedTopic.cardCount ?? 0) > 0 ? "Study topic" : "Study unit"}
+                </Text>
                 <Text style={styles.studyButtonArrow}>→</Text>
               </Pressable>
             </Link>
