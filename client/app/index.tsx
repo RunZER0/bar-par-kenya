@@ -35,21 +35,24 @@ export default function Today() {
   const [learner, setLearner] = useState<Learner | null>(null);
   const [lastDeckId, setLastDeckId] = useState<string | null>(null);
   const [pending, setPending] = useState(0);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   async function load() {
     setState("loading");
     try {
       await api.syncPendingReviews();
-      const [deckData, me, last, pendingCount] = await Promise.all([
+      const [deckData, me, last, pendingCount, reviewedBefore] = await Promise.all([
         api.listDecks(),
         api.getMe(),
         api.getLastDeck(),
         api.pendingReviewCount(),
+        api.hasReviewed(),
       ]);
       setDecks(deckData);
       setLearner(me);
       setLastDeckId(last);
       setPending(pendingCount);
+      setHasReviewed(reviewedBefore);
       setState("ready");
     } catch {
       setState("error");
@@ -170,7 +173,7 @@ export default function Today() {
             </Link>
           </View>
 
-          {learner?.kind === "guest" ? (
+          {learner?.kind === "guest" && hasReviewed ? (
             <Link href={{ pathname: "/account", params: { mode: "register" } }} asChild>
               <Pressable style={({ pressed }) => [styles.guestRow, pressed && styles.pressed]}>
                 <Text style={styles.guestText}>Guest progress</Text>
