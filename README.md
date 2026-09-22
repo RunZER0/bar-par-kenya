@@ -13,14 +13,12 @@ KSL study platform with a Hono/PostgreSQL API and an Expo + React Native + React
 - ATP mind maps generated from the nine-unit syllabus hierarchy
 - Practice sessions, attempts, progress, streaks, and bookmarks
 - Opt-in notification preferences and Expo/device push-token storage
-- Guided-discovery checklist for the client
 - Cloudflare R2 signed media uploads/downloads with server-generated keys
 - Responsive Expo Router client for Android and web
-- Legacy browser testing dashboard still served from the API root for API validation
 - Docker and environment configuration for Render
 - Integration-style API tests using an in-memory store
 
-The seed data intentionally contains only neutral study-skills demo content. Substantive Kenyan legal questions should go through legal/editorial review before publication.
+The current seed includes the nine ATP units, the mapped syllabus hierarchy and a small starter flashcard set. Substantive Kenyan legal content should receive legal/editorial review before publication at scale.
 
 ## Local setup
 
@@ -34,15 +32,6 @@ npm run db:migrate
 npm run db:seed
 npm run dev
 ```
-
-Open `http://localhost:3000/` to use the browser testing dashboard. It creates a
-guest learner automatically, then exercises subjects, practice sessions,
-feedback, progress, bookmarks, and guest-to-account registration against the
-same API origin.
-
-If Docker/PostgreSQL is not available, `npm run dev:memory` starts the same
-dashboard against the demo in-memory store for UI validation. Data resets when
-that process stops; use the normal `npm run dev` path for persistent data.
 
 Use a random secret of at least 32 characters for `JWT_SECRET` outside local development.
 
@@ -72,10 +61,11 @@ Set `EXPO_PUBLIC_API_URL` to the Render API origin. The same client targets Andr
 
 Primary routes:
 
-- `/` — landing
+- `/` — Today: due/new workload and continuation
 - `/study` — flashcard decks and review sessions
 - `/mind-maps` — all nine ATP units
 - `/mind-maps/[slug]` — topic/issue map for one unit
+- `/account` — save guest progress or sign in
 
 ## Client integration
 
@@ -112,3 +102,10 @@ The repository includes a root `render.yaml` Blueprint with two services:
 The web service reads `EXPO_PUBLIC_API_URL` at build time and should point to the public Render URL for `bar-par-api`. PostgreSQL remains hosted by Stashi; the API receives that connection through `DATABASE_URL`.
 
 Vercel is not part of the Bar Par deployment architecture.
+
+
+## Client UX
+
+The client is guest-first. Opening the app does not require registration. Today surfaces due and new work, card ratings are queued locally before sync, cached sessions remain usable when the network drops, and account creation is offered after study activity so the learner can protect progress without interrupting first use.
+
+Mobile uses a persistent Today / Cards / Maps navigation and safe-area-aware chrome. Desktop keeps the same information architecture in the header. The legacy API browser dashboard has been removed; the Expo client is the only product UI.

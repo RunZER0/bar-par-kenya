@@ -1,4 +1,4 @@
-import { useLocalSearchParams, router } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { AppHeader } from "@/components/AppHeader";
@@ -73,9 +73,11 @@ export default function MindMapDetail() {
     <View style={styles.page}>
       <AppHeader />
       <View style={styles.toolbar}>
-        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-          <Text style={styles.backText}>← Maps</Text>
-        </Pressable>
+        <Link href="/mind-maps" asChild>
+          <Pressable style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+            <Text style={styles.backText}>← Maps</Text>
+          </Pressable>
+        </Link>
         <View style={styles.searchWrap}>
           <Text style={styles.searchGlyph}>⌕</Text>
           <TextInput
@@ -101,14 +103,32 @@ export default function MindMapDetail() {
         <View style={styles.state}><StatePanel title="Could not load this map." action="Try again" onPress={() => void load()} /></View>
       ) : data && root ? (
         <ScrollView contentContainerStyle={styles.scroll}>
-          <View style={styles.heading}>
-            <Text style={styles.kicker}>{data.unitCode}</Text>
-            <Text style={[styles.title, desktop && styles.titleDesktop]}>{data.name}</Text>
-            <View style={styles.counts}>
-              <Text style={styles.count}>{topics.length} topics</Text>
-              <Text style={styles.dot}>·</Text>
-              <Text style={styles.count}>{allIssues.length} issues</Text>
+          <View style={[styles.heading, desktop && styles.headingDesktop]}>
+            <View style={styles.headingMain}>
+              <Text style={styles.kicker}>{data.unitCode}</Text>
+              <Text style={[styles.title, desktop && styles.titleDesktop]}>{data.name}</Text>
+              <View style={styles.counts}>
+                <Text style={styles.count}>{topics.length} topics</Text>
+                <Text style={styles.dot}>·</Text>
+                <Text style={styles.count}>{allIssues.length} issues</Text>
+              </View>
             </View>
+            <Link
+              href={{
+                pathname: "/study",
+                params: selectedTopic?.topicId && (selectedTopic.cardCount ?? 0) > 0
+                  ? { subjectId: data.subjectId, topicId: selectedTopic.topicId }
+                  : { subjectId: data.subjectId },
+              }}
+              asChild
+            >
+              <Pressable style={({ pressed }) => [styles.studyButton, pressed && styles.pressed]}>
+                <Text style={styles.studyButtonText}>
+                  {selectedTopic?.topicId && (selectedTopic.cardCount ?? 0) > 0 ? "Study topic" : "Study unit"}
+                </Text>
+                <Text style={styles.studyButtonArrow}>→</Text>
+              </Pressable>
+            </Link>
           </View>
 
           {desktop ? (
@@ -214,12 +234,12 @@ const styles = StyleSheet.create({
     gap: 16,
     backgroundColor: colors.card,
   },
-  back: { paddingVertical: 10, paddingRight: 12 },
+  back: { minHeight: 44, paddingRight: 12, justifyContent: "center" },
   backText: { color: colors.ink, fontSize: 12, fontWeight: "900" },
   searchWrap: {
     flex: 1,
     maxWidth: 360,
-    height: 40,
+    height: 44,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: colors.line,
@@ -234,8 +254,13 @@ const styles = StyleSheet.create({
   clear: { color: colors.muted, fontSize: 18, lineHeight: 20 },
   pressed: { opacity: 0.68 },
   state: { padding: 20, maxWidth: 900, width: "100%", alignSelf: "center" },
-  scroll: { width: "100%", maxWidth: 1320, alignSelf: "center", padding: 20, paddingBottom: 50 },
-  heading: { marginVertical: 20 },
+  scroll: { width: "100%", maxWidth: 1320, alignSelf: "center", padding: 20, paddingBottom: 120 },
+  heading: { marginVertical: 20, gap: 18 },
+  headingDesktop: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
+  headingMain: { flex: 1, minWidth: 0 },
+  studyButton: { minHeight: 44, paddingHorizontal: 15, borderRadius: radii.sm, backgroundColor: colors.ink, flexDirection: "row", alignItems: "center", gap: 18, alignSelf: "flex-start" },
+  studyButtonText: { color: "#fff", fontSize: 11, fontWeight: "900" },
+  studyButtonArrow: { color: colors.lime, fontSize: 16, fontWeight: "900" },
   kicker: { color: colors.coral, fontSize: 10, fontWeight: "900", letterSpacing: 1.5 },
   title: { color: colors.ink, fontSize: 38, lineHeight: 42, fontWeight: "900", letterSpacing: -1.8, marginTop: 7 },
   titleDesktop: { fontSize: 50, lineHeight: 54, letterSpacing: -2.4 },

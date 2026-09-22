@@ -589,20 +589,33 @@ export class PostgresStore implements Store {
     const rows = await this.db.select().from(mindMapNodes)
       .where(and(eq(mindMapNodes.subjectId, subject.id), eq(mindMapNodes.published, true)))
       .orderBy(asc(mindMapNodes.position));
+    const topicRows = await this.db.select({
+      id: topics.id,
+      name: topics.name,
+      cardCount: count(flashcards.id),
+    }).from(topics)
+      .leftJoin(flashcards, and(eq(flashcards.topicId, topics.id), eq(flashcards.published, true)))
+      .where(and(eq(topics.subjectId, subject.id), eq(topics.published, true)))
+      .groupBy(topics.id);
+    const topicByName = new Map(topicRows.map((row) => [row.name, { id: row.id, cardCount: Number(row.cardCount) }]));
     return {
       subjectId: subject.id,
       slug: subject.slug,
       unitCode: subject.unitCode ?? "",
       name: subject.name,
-      nodes: rows.map((row) => ({
-        id: row.id,
-        key: row.key,
-        parentKey: row.parentKey,
-        label: row.label,
-        kind: row.kind,
-        depth: row.depth,
-        position: row.position,
-      })),
+      nodes: rows.map((row) => {
+        const topic = row.kind === "topic" ? topicByName.get(row.label) : undefined;
+        return {
+          id: row.id,
+          key: row.key,
+          parentKey: row.parentKey,
+          label: row.label,
+          kind: row.kind,
+          depth: row.depth,
+          position: row.position,
+          ...(topic ? { topicId: topic.id, cardCount: topic.cardCount } : {}),
+        };
+      }),
     };
   }
 
