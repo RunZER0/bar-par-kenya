@@ -3,7 +3,6 @@ import { compare, hash } from "bcryptjs";
 import { cors } from "hono/cors";
 import { createMiddleware } from "hono/factory";
 import { secureHeaders } from "hono/secure-headers";
-import { serveStatic } from "@hono/node-server/serve-static";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -439,10 +438,6 @@ export function createApp({ store, auth, corsOrigins, mediaStorage, adminApiKey 
       expiresInSeconds: 300,
     }),
   }));
-
-  // Keep the browser playground on the same origin as the API for a zero-config
-  // local demo. The static middleware only handles files that are not API routes.
-  app.use("*", serveStatic({ root: "./frontend" }));
 
   app.notFound((context) => context.json({
     error: { code: "not_found", message: "Route not found" },
