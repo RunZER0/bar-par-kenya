@@ -29,7 +29,7 @@ function nextLabel(value: string | null) {
 }
 
 export default function Study() {
-  const params = useLocalSearchParams<{ subjectId?: string }>();
+  const params = useLocalSearchParams<{ subjectId?: string; topicId?: string }>();
   const { width } = useWindowDimensions();
   const desktop = width >= 920;
   const [phase, setPhase] = useState<Phase>("loading");
@@ -99,13 +99,13 @@ export default function Study() {
         setPhase("empty");
         return;
       }
-      await openDeck(first);
+      await openDeck(first, params.topicId);
     } catch {
       setPhase("error");
     }
   }
 
-  async function openDeck(deck: Deck) {
+  async function openDeck(deck: Deck, topicId?: string) {
     setSelectedDeck(deck);
     setIndex(0);
     setReviewed(0);
@@ -116,7 +116,7 @@ export default function Study() {
     setPhase("loading");
     await api.setLastDeck(deck.subjectId);
     try {
-      const session = await api.startCardSession(deck.subjectId);
+      const session = await api.startCardSession(topicId ? undefined : deck.subjectId, topicId);
       setCards(session.cards);
       setOffline(Boolean(session.offline));
       setPhase(session.cards.length ? "ready" : "empty");
@@ -175,7 +175,7 @@ export default function Study() {
       if (syncTimer.current) clearTimeout(syncTimer.current);
       void api.syncPendingReviews();
     };
-  }, [params.subjectId]);
+  }, [params.subjectId, params.topicId]);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
