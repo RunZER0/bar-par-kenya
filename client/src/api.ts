@@ -1,6 +1,15 @@
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
+export type Learner = {
+  id: string;
+  kind: "guest" | "registered";
+  displayName: string | null;
+  email: string | null;
+  examDate: string | null;
+  createdAt: string;
+};
+
 export type Deck = {
   subjectId: string;
   slug: string;
@@ -146,11 +155,41 @@ async function authed<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 }
 
+async function storeAuth(auth: { accessToken: string; learner: Learner }) {
+  token = auth.accessToken;
+  await storage.set("barpar.token", auth.accessToken);
+  return auth.learner;
+}
+
 export const api = {
+  me: () => authed<Learner>("/v1/me"),
+  register: async (input: { displayName: string; email: string; password: string }) => {
+    await ensureSession();
+    const auth = await raw("/v1/auth/register", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }) as { accessToken: string; learner: Learner };
+    return storeAuth(auth);
+  },
+  login: async (input: { email: string; password: string }) => {
+    const auth = await raw("/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify(input),
+    }) as { accessToken: string; learner: Learner };
+    return storeAuth(auth);
+  },
+  logout: async () => {
+    token = null;
+    await storage.remove("barpar.token");
+  },
   listDecks: () => authed<Deck[]>("/v1/decks"),
-  startCardSession: (subjectId?: string) => authed<CardSession>("/v1/cards/session", {
+  startCardSession: (input: { subjectId?: string; topicId?: string; limit?: number } = {}) => authed<CardSession>("/v1/cards/session", {
     method: "POST",
-    body: JSON.stringify({ ...(subjectId ? { subjectId } : {}), limit: 30 }),
+    body: JSON.stringify({
+      ...(input.subjectId ? { subjectId: input.subjectId } : {}),
+      ...(input.topicId ? { topicId: input.topicId } : {}),
+      limit: input.limit ?? 30,
+    }),
   }),
   reviewCard: (cardId: string, rating: CardReview["rating"]) => authed<CardReview>(`/v1/cards/${cardId}/review`, {
     method: "POST",
