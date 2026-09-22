@@ -21,39 +21,50 @@ const barParTables = new Set([
 ]);
 
 try {
-  const [privileges] = await sql<{
-    publicUsage: boolean;
-    publicCreate: boolean;
+  const [target] = await sql<{
+    schemaName: string | null;
+    searchPath: string;
+    canUse: boolean;
+    canCreate: boolean;
   }[]>`
     SELECT
-      has_schema_privilege(current_user, 'public', 'USAGE') AS "publicUsage",
-      has_schema_privilege(current_user, 'public', 'CREATE') AS "publicCreate"
+      current_schema() AS "schemaName",
+      current_setting('search_path') AS "searchPath",
+      has_schema_privilege(current_user, current_schema(), 'USAGE') AS "canUse",
+      has_schema_privilege(current_user, current_schema(), 'CREATE') AS "canCreate"
   `;
 
-  if (!privileges?.publicUsage) {
-    throw new Error("Database role cannot use the public schema.");
+  if (!target?.schemaName) {
+    throw new Error("The database connection does not resolve to a writable target schema.");
   }
-  if (!privileges.publicCreate) {
-    throw new Error("Database role cannot create Bar Par tables in the public schema.");
+  if (!target.canUse) {
+    throw new Error(`Database role cannot use target schema ${target.schemaName}.`);
+  }
+  if (!target.canCreate) {
+    throw new Error(`Database role cannot create Bar Par objects in target schema ${target.schemaName}.`);
   }
 
   const rows = await sql<{ tablename: string }[]>`
     SELECT tablename
     FROM pg_tables
-    WHERE schemaname = 'public'
+    WHERE schemaname = ${target.schemaName}
   `;
-  const unknownCount = rows.filter((row) => !barParTables.has(row.tablename)).length;
+  const unknown = rows
+    .map((row) => row.tablename)
+    .filter((name) => !barParTables.has(name));
 
-  if (unknownCount > 0) {
+  if (unknown.length > 0) {
     throw new Error(
-      `Safety check stopped bootstrap: the target database contains ${unknownCount} unrecognized public table(s). Use a dedicated Bar Par database.`,
+      `Safety check stopped bootstrap: target schema ${target.schemaName} contains unrecognized table(s): ${unknown.slice(0, 5).join(", ")}${unknown.length > 5 ? "…" : ""}.`,
     );
   }
 
   console.log(JSON.stringify({
     ok: true,
-    publicSchemaUsable: true,
-    publicSchemaWritable: true,
+    targetSchema: target.schemaName,
+    searchPath: target.searchPath,
+    schemaUsable: true,
+    schemaWritable: true,
     existingBarParTables: rows.length,
   }));
 } finally {
