@@ -202,7 +202,11 @@ export default function Study() {
   return (
     <View style={styles.page}>
       <AppHeader />
-      <View style={[styles.body, desktop && styles.bodyDesktop]}>
+      <ScrollView
+        style={styles.bodyScroll}
+        contentContainerStyle={[styles.body, desktop && styles.bodyDesktop]}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={[styles.deckRail, desktop && styles.deckRailDesktop]}>
           <View style={styles.railHead}>
             <Text style={styles.railLabel}>CARDS</Text>
@@ -375,14 +379,15 @@ export default function Study() {
             </>
           ) : null}
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.paper },
-  body: { flex: 1, width: "100%", maxWidth: 1320, alignSelf: "center", padding: 16, paddingBottom: 92, gap: 16 },
+  bodyScroll: { flex: 1 },
+  body: { flexGrow: 1, width: "100%", maxWidth: 1320, alignSelf: "center", padding: 16, paddingBottom: 104, gap: 16 },
   bodyDesktop: { flexDirection: "row", padding: 28, gap: 22 },
   deckRail: { gap: 12 },
   deckRailDesktop: { width: 270, flexShrink: 0 },
