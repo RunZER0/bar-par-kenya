@@ -247,7 +247,7 @@ export default function Study() {
             ) : null}
           </View>
 
-          {offline || pending > 0 ? (
+          {offline || (pending > 0 && !lastQueued) ? (
             <View style={styles.syncBar}>
               <View style={[styles.syncDot, offline && styles.syncDotOffline]} />
               <Text style={styles.syncText}>
@@ -293,7 +293,7 @@ export default function Study() {
                   <Text style={styles.statLabel}>Again</Text>
                 </View>
               </View>
-              {pending > 0
+              {pending > 0 && !lastQueued
                 ? <Text style={styles.completeMeta}>{pending} review{pending === 1 ? "" : "s"} will sync when connected</Text>
                 : nextReview
                   ? <Text style={styles.completeMeta}>Next review · {nextReview}</Text>
