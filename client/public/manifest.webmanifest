@@ -1,0 +1,45 @@
+{
+  "name": "Bar Par Kenya",
+  "short_name": "Bar Par",
+  "description": "KSL flashcards and ATP mind maps.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#F4F5F0",
+  "theme_color": "#102D2A",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Today",
+      "short_name": "Today",
+      "url": "/"
+    },
+    {
+      "name": "Cards",
+      "short_name": "Cards",
+      "url": "/study"
+    },
+    {
+      "name": "Maps",
+      "short_name": "Maps",
+      "url": "/mind-maps"
+    }
+  ]
+}

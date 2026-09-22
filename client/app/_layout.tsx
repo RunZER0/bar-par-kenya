@@ -5,6 +5,7 @@ import { AccessibilityInfo, AppState, Platform, View } from "react-native";
 import { MobileNav } from "@/components/MobileNav";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { api } from "@/api";
+import { PwaRegistration } from "@/components/PwaRegistration";
 
 export default function RootLayout() {
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -34,6 +35,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <View style={{ flex: 1 }}>
+        <PwaRegistration />
         <StatusBar style="dark" />
         <Stack
           screenOptions={{

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bar Par">
+  <rect width="512" height="512" fill="#102D2A"/>
+  <rect x="76" y="76" width="360" height="360" rx="106" fill="#D8ED9B"/>
+  <path d="M166 152h91c66 0 105 28 105 76 0 31-18 53-50 64 39 9 59 35 59 70 0 55-43 86-116 86h-89V152Zm81 114c33 0 50-10 50-32 0-21-16-30-49-30h-22v62h21Zm8 130c36 0 53-12 53-35 0-23-18-34-54-34h-28v69h29Z" fill="#102D2A"/>
+  <circle cx="389" cy="389" r="25" fill="#EE765F"/>
+</svg>
