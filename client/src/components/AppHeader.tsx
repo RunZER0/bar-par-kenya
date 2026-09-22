@@ -19,7 +19,7 @@ export function AppHeader() {
   return (
     <View style={[styles.shell, { paddingTop: insets.top, minHeight: 68 + insets.top }]}>
       <Link href="/" asChild>
-        <Pressable accessibilityLabel="Bar Par home"><Brand compact={compact} /></Pressable>
+        <Pressable accessibilityLabel="Bar Par home" hitSlop={8}><Brand compact={compact} /></Pressable>
       </Link>
 
       {!compact ? (
@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
   linkText: { color: colors.muted, fontSize: 13, fontWeight: "700" },
   activeText: { color: colors.ink },
   account: {
-    minHeight: 38,
-    minWidth: 38,
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: 13,
     borderRadius: radii.pill,
     borderWidth: 1,
