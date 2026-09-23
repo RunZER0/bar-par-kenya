@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   deckCodeActive: { color: colors.ink },
   deckDue: { color: colors.muted, fontSize: 9, fontWeight: "800" },
   deckDueActive: { color: colors.ink2 },
-  deckName: { color: colors.ink2, fontSize: 13, lineHeight: 17, fontWeight: "750", marginTop: 5 },
+  deckName: { color: colors.ink2, fontSize: 13, lineHeight: 17, fontWeight: "700", marginTop: 5 },
   deckNameActive: { color: colors.ink, fontWeight: "900" },
 
   mobileDeckShell: { flexShrink: 0, borderBottomWidth: 1, borderBottomColor: colors.line },
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
   },
   mobileDeckIdentity: { minWidth: 0, flex: 1, flexDirection: "row", alignItems: "center", gap: 9 },
   mobileDeckCode: { color: colors.coral, fontSize: 9, fontWeight: "900", letterSpacing: 1 },
-  mobileDeckName: { minWidth: 0, flex: 1, color: colors.ink, fontSize: 13, fontWeight: "850" },
+  mobileDeckName: { minWidth: 0, flex: 1, color: colors.ink, fontSize: 13, fontWeight: "800" },
   mobileDeckRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   mobileDeckStatus: { color: colors.muted, fontSize: 9, fontWeight: "800" },
   mobileDeckChevron: { color: colors.ink, fontSize: 13, fontWeight: "900" },
