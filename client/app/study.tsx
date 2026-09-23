@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   progressFill: { height: 3, backgroundColor: colors.coral },
   cardHit: { minHeight: 410, borderRadius: radii.lg },
   card: { minHeight: 410, borderRadius: radii.lg, overflow: "hidden", ...shadow },
-  cardFace: { ...StyleSheet.absoluteFillObject, padding: 28, justifyContent: "space-between" },
+  cardFace: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, padding: 28, justifyContent: "space-between" },
   cardPressed: { opacity: 0.96 },
   cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   cardLabel: { color: colors.lime, fontSize: 9, fontWeight: "900", letterSpacing: 1.4 },
